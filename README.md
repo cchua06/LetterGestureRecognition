@@ -28,4 +28,4 @@ Usage: py HandTracker.py --[flag]. Use --letters to classify letters and use --n
 ## Contact
 
 Cedric Chua - cchua06@sas.upenn.edu
-Project Link - https://github.com/cchua06/awss3tutorial
+Project Link - https://github.com/cchua06/LetterGestureRecognition
