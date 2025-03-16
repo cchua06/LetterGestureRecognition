@@ -6,16 +6,25 @@ Uses Google's prebuilt Mediapipe computer vision model to detect ASL from hand g
 
 - [Pre-requisites](#pre-requisites)
 - [How to run](#how-to-run)
+- [Known bugs](#known-bugs)
 - [References](#references)
 - [Contact](#contact)
 
 ## Pre-requisites
 
-Use pip to install: mediapipe, opencv-python and numpy.
+Use pip to install: mediapipe, opencv-python, pyttsx3 and numpy.
 
 ## How to run
 
-Usage: py HandTracker.py --[flag]. Use --letters to classify letters and use --numbers to classify numbers.
+Usage: py HandTracker.py --[flag]. Use --letters to classify letters and use --numbers to classify numbers. The program stores letters classified into a phrase. Hold the letter for 1.5 seconds for the letter to be dictated and added to the phrase. Once a letter is added, you may add a space character by removing your hands from the camera's view for 1.5 seconds.
+
+Press "r" to replay the phrase. Press "c" to clear the stored phrase. Press BACKSPACE to remove the most recent character from the phrase. 
+
+Press "q" to exit the program.
+
+## Known bugs
+
+Exiting the program while the speech engine is running will cause the program to crash.
 
 ## References
 
