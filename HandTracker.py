@@ -15,11 +15,11 @@ if len(sys.argv) != 2 or sys.argv[1] not in ['--letters', '--l', '--numbers', '-
 
 # Load the appropriate KNN model and label encoder based on the argument
 if sys.argv[1] in ['--letters', '--l']:
-    knn = joblib.load('knn_letteronly_model.pkl')
-    label_encoder = joblib.load('label_letteronly_encoder.pkl')
+    knn = joblib.load('models/knn_letteronly_model.pkl')
+    label_encoder = joblib.load('models/label_letteronly_encoder.pkl')
 elif sys.argv[1] in ['--numbers', '--n']:
-    knn = joblib.load('knn_numbersonly_model.pkl')
-    label_encoder = joblib.load('label_numbersonly_encoder.pkl')
+    knn = joblib.load('models/knn_numbersonly_model.pkl')
+    label_encoder = joblib.load('models/label_numbersonly_encoder.pkl')
 
 # Load video capture
 cap = cv.VideoCapture(0)
@@ -55,61 +55,66 @@ phrase = ""
 current_future = None
 current_letter = None
 
+# Print phrase
 def print_phrase():
     print("Phrase: " + '"' + phrase + '"')
+
+# Flag to pause clasissification
+paused = False
 
 while True:
     success, img = cap.read()
     imgRGB = cv.cvtColor(img, cv.COLOR_BGR2RGB)
     results = hands.process(imgRGB)
     current_time = time.time()
-    if results.multi_hand_landmarks:
-        for handLandmark in results.multi_hand_landmarks:
-            landmark_locs = []
-            mpDraw.draw_landmarks(img, handLandmark, mpHands.HAND_CONNECTIONS)
+    if not paused:
+        if results.multi_hand_landmarks:
+            for handLandmark in results.multi_hand_landmarks:
+                landmark_locs = []
+                mpDraw.draw_landmarks(img, handLandmark, mpHands.HAND_CONNECTIONS)
 
-            h, w, c = img.shape
-            landmarks = np.array([(lm.x * w, lm.y * h) for lm in handLandmark.landmark])
-            x_min, y_min = np.min(landmarks, axis=0)
-            x_max, y_max = np.max(landmarks, axis=0)
+                h, w, c = img.shape
+                landmarks = np.array([(lm.x * w, lm.y * h) for lm in handLandmark.landmark])
+                x_min, y_min = np.min(landmarks, axis=0)
+                x_max, y_max = np.max(landmarks, axis=0)
 
-            # Normalize the landmarks to the range [0, 1]
-            width = x_max - x_min
-            height = y_max - y_min
-            normalized_landmarks = (landmarks - [x_min, y_min]) / [width, height]
+                # Normalize the landmarks to the range [0, 1]
+                width = x_max - x_min
+                height = y_max - y_min
+                normalized_landmarks = (landmarks - [x_min, y_min]) / [width, height]
 
-            landmark_locs = normalized_landmarks.tolist()
+                landmark_locs = normalized_landmarks.tolist()
 
-            # Flatten the landmark locations for prediction
-            landmark_locs_flat = np.array(landmark_locs).flatten().reshape(1, -1)
+                # Flatten the landmark locations for prediction
+                landmark_locs_flat = np.array(landmark_locs).flatten().reshape(1, -1)
 
-            # Predict the letter or number
-            predicted_label = knn.predict(landmark_locs_flat)
-            predicted_character = label_encoder.inverse_transform(predicted_label)[0].upper()
+                # Predict the letter or number
+                predicted_label = knn.predict(landmark_locs_flat)
+                predicted_character = label_encoder.inverse_transform(predicted_label)[0].upper()
 
-            x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
+                x_min, y_min, x_max, y_max = int(x_min), int(y_min), int(x_max), int(y_max)
 
-            cv.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
-            cv.putText(img, f"Character: {predicted_character}", (x_min, y_min - 10), cv.FONT_HERSHEY_SIMPLEX, 1, (139, 0, 0), 2)
+                cv.rectangle(img, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
+                cv.putText(img, f"Character: {predicted_character}", (x_min, y_min - 10), cv.FONT_HERSHEY_SIMPLEX, 1, (139, 0, 0), 2)
 
-            # Check if the predicted character has been the same for at least 1 second
-            if predicted_character == last_predicted_character:
-                if current_time - last_predicted_time >= 1.5:
-                    if current_future is None or current_future.running() is None or current_future.done(): #Check if the phrase is done
-                        if current_letter is None or current_letter.running() is None or current_letter.done(): #Check if the letter is done
-                            #print(predicted_character)
-                            speech_queue.append(predicted_character)
-                            phrase += predicted_character
-                            print_phrase()
-                            last_predicted_time = current_time  # Reset the timer after speaking
-                            last_dictated_character = predicted_character
-            else:
-                last_predicted_character = predicted_character
-                last_predicted_time = current_time
-    elif current_time - last_predicted_time >= 1.5 and phrase != "" and last_predicted_character != " ":
-        print_phrase()
-        last_predicted_character = " "
-        phrase += last_predicted_character
+                # Check if the predicted character has been the same for at least 1 second
+                if predicted_character == last_predicted_character:
+                    if current_time - last_predicted_time >= 1.5:
+                        if current_future is None or current_future.running() is None or current_future.done(): #Check if the phrase is done
+                            if current_letter is None or current_letter.running() is None or current_letter.done(): #Check if the letter is done
+                                #print(predicted_character)
+                                speech_queue.append(predicted_character)
+                                phrase += predicted_character
+                                print_phrase()
+                                last_predicted_time = current_time  # Reset the timer after speaking
+                                last_dictated_character = predicted_character
+                else:
+                    last_predicted_character = predicted_character
+                    last_predicted_time = current_time
+        elif current_time - last_predicted_time >= 1.5 and phrase != "" and last_predicted_character != " ":
+            last_predicted_character = " "
+            phrase += last_predicted_character
+            print_phrase()
 
     # Process the speech queue synchronously
     if speech_queue:
@@ -137,6 +142,13 @@ while True:
         print("Clearing phrase...")
         phrase = ""
 
+    # Pauses classificaiton
+    if key == ord('p'):
+        last_predicted_time = current_time
+        paused = not paused
+        print("Paused..." if paused else "Resumed...")
+
+    # Quits the program
     if key == ord('q'):
         print("Exiting program...")
         time.sleep(0.5)

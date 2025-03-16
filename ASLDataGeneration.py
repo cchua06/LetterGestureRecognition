@@ -58,5 +58,5 @@ X = np.array(X)
 y = np.array(y)
 
 # Save the data to .npz files
-#np.savez('asl_numbersonly_data.npz', X = X, y = y)
-np.savez('asl_letteronly_data.npz', X = X, y = y)
+#np.savez('cleaned_data/asl_numbersonly_data.npz', X = X, y = y)
+np.savez('cleaned_data/asl_letteronly_data.npz', X = X, y = y)
